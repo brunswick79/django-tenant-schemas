@@ -7,7 +7,7 @@ if "south" in settings.INSTALLED_APPS:
 else:
     from django.core.management.commands.syncdb import Command as SyncdbCommand
 from django.db import connection
-from tenant_schemas.utils import get_tenant_model, get_public_schema_name
+from tenant_schemas.utils import get_tenant_model, get_public_schema_name, set_tenant
 from tenant_schemas.management.commands import SyncCommon
 
 
@@ -57,7 +57,7 @@ class Command(SyncCommon):
 
     def _sync_tenant(self, tenant):
         self._notice("=== Running syncdb for schema: %s" % tenant.schema_name)
-        connection.set_tenant(tenant, include_public=False)
+        set_tenant(tenant, include_public=False)
         SyncdbCommand().execute(**self.options)
 
     def sync_tenant_apps(self, schema_name=None):

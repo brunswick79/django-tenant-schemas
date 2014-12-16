@@ -4,11 +4,11 @@ import django
 from django.apps import apps
 from django.core.management.commands.migrate import Command as MigrateCommand
 from django.core.management.base import BaseCommand, CommandError
-from django.db import connection
+from django.db import connections, DEFAULT_DB_ALIAS
 from django.conf import settings
 
 from tenant_schemas.utils import (get_tenant_model, get_public_schema_name,
-                                  schema_exists)
+                                  schema_exists, set_schema)
 
 
 class MigrateSchemasCommand(BaseCommand):
@@ -40,6 +40,7 @@ class MigrateSchemasCommand(BaseCommand):
         self.args = args
         self.options = options
         self.PUBLIC_SCHEMA_NAME = get_public_schema_name()
+        self.database_alias = options.get('database')
 
         if self.schema_name:
             if self.sync_public:
@@ -65,7 +66,7 @@ class MigrateSchemasCommand(BaseCommand):
                 # Make sure the tenant exists and the schema belongs to
                 # a tenant; We don't want to sync to extensions schema by
                 # mistake
-                if not schema_exists(self.schema_name):
+                if not schema_exists(self.schema_name, self.database_alias):
                     raise RuntimeError('Schema "{}" does not exist'.format(
                         self.schema_name))
                 elif self.schema_name in self.non_tenant_schemas:
@@ -82,7 +83,7 @@ class MigrateSchemasCommand(BaseCommand):
 
     def run_migrations(self, schema_name, included_apps):
         self._notice("=== Running migrate for schema %s" % schema_name)
-        connection.set_schema(schema_name, include_public=False)
+        set_schema(schema_name, include_public=False)
         apps.app_configs = OrderedDict()
         apps.clear_cache()
         apps.set_installed_apps(included_apps)
@@ -100,7 +101,7 @@ class MigrateSchemasCommand(BaseCommand):
 
         command.execute(*self.args, **defaults)
 
-        connection.set_schema('public', include_public=True)
+        set_schema('public', include_public=True)
         apps.app_configs = OrderedDict()
         apps.clear_cache()
         apps.set_installed_apps(settings.SHARED_APPS)

@@ -2,7 +2,8 @@ from django.db import connection
 
 from tenant_schemas.tests.models import Tenant, NonAutoSyncTenant, DummyModel
 from tenant_schemas.tests.testcases import BaseTestCase
-from tenant_schemas.utils import tenant_context, schema_context, schema_exists
+from tenant_schemas.utils import tenant_context, schema_context, schema_exists, \
+    set_tenant, set_schema_to_public
 
 
 class TenantTestCase(BaseTestCase):
@@ -40,18 +41,18 @@ class TenantTestCase(BaseTestCase):
         tenant.save()
 
         # go to tenant's path
-        connection.set_tenant(tenant)
+        set_tenant(tenant)
 
         # add some data
         DummyModel(name="Schemas are").save()
         DummyModel(name="awesome!").save()
 
         # edit tenant
-        connection.set_schema_to_public()
+        set_schema_to_public()
         tenant.domain_url = 'example.com'
         tenant.save()
 
-        connection.set_tenant(tenant)
+        set_tenant(tenant)
 
         # test if data is still there
         self.assertEquals(DummyModel.objects.count(), 2)
@@ -63,12 +64,12 @@ class TenantTestCase(BaseTestCase):
                          schema_name='tenant1')
         tenant1.save()
 
-        connection.set_schema_to_public()
+        set_schema_to_public()
         tenant2 = Tenant(domain_url='example.com', schema_name='tenant2')
         tenant2.save()
 
         # go to tenant1's path
-        connection.set_tenant(tenant1)
+        set_tenant(tenant1)
 
         # add some data
         DummyModel(name="Schemas are").save()

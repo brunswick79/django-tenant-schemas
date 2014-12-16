@@ -3,7 +3,7 @@ from django.db import connection
 from django.test import TransactionTestCase
 
 from .models import Tenant
-from ..utils import get_public_schema_name
+from ..utils import get_public_schema_name, set_schema_to_public
 
 
 class BaseTestCase(TransactionTestCase):
@@ -26,14 +26,14 @@ class BaseTestCase(TransactionTestCase):
                                     schema_name='public')
         self.public_tenant.save()
 
-        connection.set_schema_to_public()
+        set_schema_to_public()
 
     def tearDown(self):
         """
         Delete all tenant schemas. Tenant schema are not deleted
         automatically by django.
         """
-        connection.set_schema_to_public()
+        set_schema_to_public()
         do_not_delete = [get_public_schema_name(), 'information_schema']
         cursor = connection.cursor()
 

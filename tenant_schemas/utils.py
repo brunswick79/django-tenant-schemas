@@ -1,34 +1,61 @@
 from contextlib import contextmanager
 from django.conf import settings
-from django.db import connection
+from django.db import connections, connection, DEFAULT_DB_ALIAS
 from django.db.models.loading import get_model
 from django.core import mail
 
+
+def get_db_connection(alias):
+    if alias is None:
+        alias = DEFAULT_DB_ALIAS
+    return connections[alias]
+
+def get_databases():
+    engines = ['tenant_schemas.postgresql_backend',]
+    return [k for k,v in settings.DATABASES.items() if v['ENGINE'] in engines]
+
+def set_schema(schema_name, include_public=True):
+    databases = get_databases()
+    for alias in databases:
+        conn = get_db_connection(alias)
+        conn.set_schema(schema_name, include_public)
+
+def set_tenant(tenant, include_public=True):
+    databases = get_databases()
+    for alias in databases:
+        conn = get_db_connection(alias)
+        conn.set_tenant(tenant, include_public)
+
+def set_schema_to_public():
+    databases = get_databases()
+    for alias in databases:
+        conn = get_db_connection(alias)
+        conn.set_schema_to_public()
 
 @contextmanager
 def schema_context(schema_name):
     previous_tenant = connection.tenant
     try:
-        connection.set_schema(schema_name)
+        set_schema(schema_name)
         yield
     finally:
         if previous_tenant is None:
-            connection.set_schema_to_public()
+            set_schema_to_public()
         else:
-            connection.set_tenant(previous_tenant)
+            set_schema(previous_tenant)
 
 
 @contextmanager
 def tenant_context(tenant):
     previous_tenant = connection.tenant
     try:
-        connection.set_tenant(tenant)
+        set_tenant(tenant)
         yield
     finally:
         if previous_tenant is None:
-            connection.set_schema_to_public()
+            set_schema_to_public()
         else:
-            connection.set_tenant(previous_tenant)
+            set_tenant(previous_tenant)
 
 
 def get_tenant_model():
@@ -80,7 +107,8 @@ def django_is_in_test_mode():
     return hasattr(mail, 'outbox')
 
 
-def schema_exists(schema_name):
+def schema_exists(schema_name, database=None):
+    connection = get_db_connection(database)
     cursor = connection.cursor()
 
     # check if this schema already exists in the db
