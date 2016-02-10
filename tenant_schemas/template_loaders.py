@@ -43,16 +43,16 @@ class CachedLoader(BaseLoader):
         raise TemplateDoesNotExist(name)
 
     def load_template(self, template_name, template_dirs=None):
-        if connection.tenant:
+        try:
             key = '-'.join([str(connection.tenant.pk), template_name])
-        else:
+        except AttributeError:
             key = template_name
         if template_dirs:
             # If template directories were specified, use a hash to differentiate
-            if connection.tenant:
+            try:
                 key = '-'.join([str(connection.tenant.pk), template_name,
                                 hashlib.sha1(force_bytes('|'.join(template_dirs))).hexdigest()])
-            else:
+            except AttributeError:
                 key = '-'.join([template_name, hashlib.sha1(force_bytes('|'.join(template_dirs))).hexdigest()])
 
         if key not in self.template_cache:
