@@ -1,12 +1,12 @@
 import django
 from django.conf import settings
-from django.db import models, connection
+from django.db import models, connection, DEFAULT_DB_ALIAS
 from django.core.management import call_command
 
 from tenant_schemas.postgresql_backend.base import _check_schema_name
 from tenant_schemas.signals import post_schema_sync
-from tenant_schemas.utils import django_is_in_test_mode, schema_exists
-from tenant_schemas.utils import get_public_schema_name
+from tenant_schemas.utils import django_is_in_test_mode, schema_exists, get_db_connection
+from tenant_schemas.utils import get_public_schema_name, set_schema_to_public, get_databases
 
 
 class TenantMixin(models.Model):
@@ -84,11 +84,22 @@ class TenantMixin(models.Model):
 
         # safety check
         _check_schema_name(self.schema_name)
-        cursor = connection.cursor()
+        #cursor = connection.cursor()
 
         if check_if_exists and schema_exists(self.schema_name):
             return False
 
+        databases = [DEFAULT_DB_ALIAS]
+        if django.VERSION >= (1, 8, 13,):
+            databases = get_databases()
+        status = []
+        for alias in databases:
+            status.append(self.create_schema_for_database(alias, sync_schema, verbosity))
+        return all(status)
+
+    def create_schema_for_database(self, alias, sync_schema=True, verbosity=1):
+        conn = get_db_connection(alias)
+        cursor = conn.cursor()
         # create the schema
         cursor.execute('CREATE SCHEMA %s' % self.schema_name)
 
@@ -96,6 +107,8 @@ class TenantMixin(models.Model):
             call_command('migrate_schemas',
                          schema_name=self.schema_name,
                          interactive=False,
-                         verbosity=verbosity)
+                         verbosity=verbosity,
+                         database=alias)
 
-        connection.set_schema_to_public()
+        set_schema_to_public()
+        return True

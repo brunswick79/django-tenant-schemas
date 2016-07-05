@@ -5,7 +5,7 @@ from django.core.management import call_command
 from django.db import connection
 from django.test import TestCase
 
-from tenant_schemas.utils import get_public_schema_name
+from tenant_schemas.utils import get_public_schema_name, set_schema_to_public
 
 
 class BaseTestCase(TestCase):
@@ -24,14 +24,14 @@ class BaseTestCase(TestCase):
 
         # Django calls syncdb by default for the test database, but we want
         # a blank public schema for this set of tests.
-        connection.set_schema_to_public()
+        set_schema_to_public()
         cursor = connection.cursor()
         cursor.execute('DROP SCHEMA %s CASCADE; CREATE SCHEMA %s;'
                        % (get_public_schema_name(), get_public_schema_name(), ))
         super(BaseTestCase, cls).setUpClass()
 
     def setUp(self):
-        connection.set_schema_to_public()
+        set_schema_to_public()
         super(BaseTestCase, self).setUp()
 
     @classmethod

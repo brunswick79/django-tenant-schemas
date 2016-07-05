@@ -4,7 +4,7 @@ from django.core.exceptions import DisallowedHost
 from django.db import connection
 from django.http import Http404
 from tenant_schemas.utils import (get_tenant_model, remove_www,
-                                  get_public_schema_name)
+                                  get_public_schema_name, set_tenant, set_schema_to_public)
 
 
 class TenantMiddleware(object):
@@ -24,13 +24,13 @@ class TenantMiddleware(object):
     def process_request(self, request):
         # Connection needs first to be at the public schema, as this is where
         # the tenant metadata is stored.
-        connection.set_schema_to_public()
+        set_schema_to_public()
         hostname = self.hostname_from_request(request)
 
         TenantModel = get_tenant_model()
         try:
             request.tenant = TenantModel.objects.get(domain_url=hostname)
-            connection.set_tenant(request.tenant)
+            set_tenant(request.tenant)
         except TenantModel.DoesNotExist:
             raise self.TENANT_NOT_FOUND_EXCEPTION(
                 'No tenant for hostname "%s"' % hostname)
