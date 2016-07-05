@@ -1,9 +1,9 @@
 from django.conf import settings
 from django.core.management.commands.migrate import Command as MigrateCommand
-from django.db import connection
+from django.db import connection, DEFAULT_DB_ALIAS
 
 from tenant_schemas.management.commands import SyncCommon
-from tenant_schemas.utils import get_tenant_model, get_public_schema_name, schema_exists
+from tenant_schemas.utils import get_tenant_model, get_public_schema_name, schema_exists, set_schema, set_schema_to_public
 
 
 class Command(SyncCommon):
@@ -32,7 +32,7 @@ class Command(SyncCommon):
             self.run_migrations(self.schema_name, settings.SHARED_APPS)
         if self.sync_tenant:
             if self.schema_name and self.schema_name != self.PUBLIC_SCHEMA_NAME:
-                if not schema_exists(self.schema_name):
+                if not schema_exists(self.schema_name, self.database_alias):
                     raise RuntimeError('Schema "{}" does not exist'.format(
                         self.schema_name))
                 else:
@@ -45,10 +45,10 @@ class Command(SyncCommon):
     def run_migrations(self, schema_name, included_apps):
         if int(self.options.get('verbosity', 1)) >= 1:
             self._notice("=== Running migrate for schema %s" % schema_name)
-        connection.set_schema(schema_name)
+        set_schema(schema_name)
         command = MigrateCommand()
         command.execute(*self.args, **self.options)
-        connection.set_schema_to_public()
+        set_schema_to_public()
 
     def _notice(self, output):
         self.stdout.write(self.style.NOTICE(output))

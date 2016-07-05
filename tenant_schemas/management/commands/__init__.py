@@ -1,13 +1,12 @@
 from django.conf import settings
 from django.core.management import call_command, get_commands, load_command_class
 from django.core.management.base import BaseCommand, CommandError
-from django.db import connection
 
 try:
     from django.utils.six.moves import input
 except ImportError:
     input = raw_input
-from tenant_schemas.utils import get_tenant_model, get_public_schema_name
+from tenant_schemas.utils import get_tenant_model, get_public_schema_name, set_schema_to_public, set_tenant
 
 
 class BaseTenantCommand(BaseCommand):
@@ -50,7 +49,7 @@ class BaseTenantCommand(BaseCommand):
                   + self.style.SQL_TABLE(tenant.schema_name)
                   + self.style.NOTICE("' then calling %s:" % command_name))
 
-        connection.set_tenant(tenant)
+        set_tenant(tenant)
 
         # call the original command with the args it knows
         call_command(command_name, *args, **options)
@@ -61,7 +60,7 @@ class BaseTenantCommand(BaseCommand):
         """
         if options['schema_name']:
             # only run on a particular schema
-            connection.set_schema_to_public()
+            set_schema_to_public()
             self.execute_command(get_tenant_model().objects.get(schema_name=options['schema_name']), self.COMMAND_NAME,
                                  *args, **options)
         else:
@@ -119,7 +118,7 @@ class TenantWrappedCommand(InteractiveTenantOption, BaseCommand):
 
     def handle(self, *args, **options):
         tenant = self.get_tenant_from_options_or_interactive(**options)
-        connection.set_tenant(tenant)
+        set_tenant(tenant)
 
         self.command_instance.execute(*args, **options)
 
@@ -145,6 +144,7 @@ class SyncCommon(BaseCommand):
         self.installed_apps = settings.INSTALLED_APPS
         self.args = args
         self.options = options
+        self.database_alias = options.get('database')
 
         if self.schema_name:
             if self.sync_public:
