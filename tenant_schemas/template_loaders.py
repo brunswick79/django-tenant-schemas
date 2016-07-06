@@ -26,14 +26,21 @@ class CachedLoader(BaseLoader):
 
     @staticmethod
     def cache_key(template_name, template_dirs):
-        if connection.tenant and template_dirs:
-            return '-'.join([str(connection.tenant.pk), template_name,
+        try:
+            key = '-'.join([str(connection.tenant.pk), template_name,
                              hashlib.sha1(force_bytes('|'.join(template_dirs))).hexdigest()])
+        except AttributeError:
+            key = template_name
+
         if template_dirs:
             # If template directories were specified, use a hash to differentiate
-            return '-'.join([template_name, hashlib.sha1(force_bytes('|'.join(template_dirs))).hexdigest()])
-        else:
-            return template_name
+            try:
+                key = '-'.join([str(connection.tenant.pk), template_name,
+                                  hashlib.sha1(force_bytes('|'.join(template_dirs))).hexdigest()])
+            except AttributeError:
+                key = '-'.join([template_name, hashlib.sha1(force_bytes('|'.join(template_dirs))).hexdigest()])
+
+        return key
 
     def find_template(self, name, dirs=None):
         """
