@@ -26,12 +26,6 @@ class CachedLoader(BaseLoader):
 
     @staticmethod
     def cache_key(template_name, template_dirs):
-        try:
-            key = '-'.join([str(connection.tenant.pk), template_name,
-                             hashlib.sha1(force_bytes('|'.join(template_dirs))).hexdigest()])
-        except AttributeError:
-            key = template_name
-
         if template_dirs:
             # If template directories were specified, use a hash to differentiate
             try:
@@ -39,6 +33,11 @@ class CachedLoader(BaseLoader):
                                   hashlib.sha1(force_bytes('|'.join(template_dirs))).hexdigest()])
             except AttributeError:
                 key = '-'.join([template_name, hashlib.sha1(force_bytes('|'.join(template_dirs))).hexdigest()])
+        else:
+            try:
+                key = '-'.join([str(connection.tenant.pk), template_name])
+            except AttributeError:
+                key = template_name
 
         return key
 
