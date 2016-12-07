@@ -18,7 +18,7 @@ def get_db_connection(alias):
     return connections[alias]
 
 def get_databases():
-    engines = ['tenant_schemas.postgresql_backend',]
+    engines = ['tenant_schemas.postgresql_backend', 'tenant.db.backends.postgresql']
     return [k for k,v in settings.DATABASES.items() if v['ENGINE'] in engines]
 
 def set_schema(schema_name, include_public=True):
