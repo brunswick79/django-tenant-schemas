@@ -20,10 +20,12 @@ if not settings.TENANT_APPS:
 if not hasattr(settings, 'TENANT_MODEL'):
     raise ImproperlyConfigured('TENANT_MODEL setting not set')
 
+'''
+# Disabling this check because we use a custom router
 if 'tenant_schemas.routers.TenantSyncRouter' not in settings.DATABASE_ROUTERS:
     raise ImproperlyConfigured("DATABASE_ROUTERS setting must contain "
                                "'tenant_schemas.routers.TenantSyncRouter'.")
-
+'''
 default_app_config = 'tenant_schemas.apps.TenantSchemasConfig'
 # if hasattr(settings, 'PG_EXTRA_SEARCH_PATHS'):
 #     if get_public_schema_name() in settings.PG_EXTRA_SEARCH_PATHS:
