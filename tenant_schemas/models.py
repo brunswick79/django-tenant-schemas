@@ -94,7 +94,8 @@ class TenantMixin(models.Model):
             databases = get_databases()
         status = []
         for alias in databases:
-            status.append(self.create_schema_for_database(alias, sync_schema, verbosity))
+            if alias != 'readonly':
+                status.append(self.create_schema_for_database(alias, sync_schema, verbosity))
         return all(status)
 
     def create_schema_for_database(self, alias, sync_schema=True, verbosity=1):
